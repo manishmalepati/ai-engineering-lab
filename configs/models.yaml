@@ -1,0 +1,13 @@
+models:
+  local_qwen:
+    provider: ollama
+    model: ollama/qwen3:8b
+    api_base_env: OLLAMA_BASE_URL
+  claude:
+    provider: anthropic
+    model: anthropic/claude-sonnet-4-5
+    api_key_env: ANTHROPIC_API_KEY
+  gemini:
+    provider: gemini
+    model: gemini/gemini-2.5-flash
+    api_key_env: GEMINI_API_KEY

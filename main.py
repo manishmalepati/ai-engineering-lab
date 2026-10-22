@@ -1,50 +1,47 @@
-"""Run one inference request and save its result as JSON Lines."""
+"""Command-line entry point for configured inference experiments."""
 
+import argparse
 import json
-import os
-import time
-from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-from litellm import completion
+
+from harness.models import LiteLLMClient, load_model_catalog
+from harness.runner import ExperimentRunner, load_experiment
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-PROMPT = "Explain what an LLM inference harness is in two sentences."
 
 
-def main() -> None:
-    load_dotenv(PROJECT_ROOT / ".env")
-
-    model = os.getenv("DEFAULT_MODEL", "ollama/qwen3:8b")
-    base_url = os.environ["OLLAMA_BASE_URL"]
-
-    start = time.perf_counter()
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": PROMPT}],
-        api_base=base_url,
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run a configured inference experiment"
     )
-    latency = time.perf_counter() - start
+    parser.add_argument(
+        "--models-config",
+        type=Path,
+        default=PROJECT_ROOT / "configs" / "models.yaml",
+    )
+    parser.add_argument(
+        "--experiment",
+        type=Path,
+        default=PROJECT_ROOT / "experiments" / "default.yaml",
+    )
+    parser.add_argument(
+        "--results",
+        type=Path,
+        default=PROJECT_ROOT / "results" / "runs.jsonl",
+    )
+    args = parser.parse_args()
 
-    usage = getattr(response, "usage", None)
-    result = {
-        "timestamp": datetime.now(UTC).isoformat(),
-        "model": model,
-        "prompt": PROMPT,
-        "response": response.choices[0].message.content,
-        "latency_seconds": round(latency, 3),
-        "input_tokens": getattr(usage, "prompt_tokens", None),
-        "output_tokens": getattr(usage, "completion_tokens", None),
-    }
+    load_dotenv(PROJECT_ROOT / ".env")
+    models = load_model_catalog(args.models_config)
+    experiment = load_experiment(args.experiment)
+    records = ExperimentRunner(LiteLLMClient(), args.results).run(experiment, models)
 
-    results_dir = PROJECT_ROOT / "results"
-    results_dir.mkdir(exist_ok=True)
-    with (results_dir / "runs.jsonl").open("a", encoding="utf-8") as runs_file:
-        runs_file.write(json.dumps(result, ensure_ascii=False) + "\n")
-
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    for record in records:
+        print(json.dumps(record.model_dump(mode="json"), ensure_ascii=False))
+    return 1 if any(not record.success for record in records) else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
