@@ -1,0 +1,5 @@
+name: first-inference
+models:
+  - local_qwen
+prompts:
+  - Explain what an LLM inference harness is in two sentences.
