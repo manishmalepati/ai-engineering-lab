@@ -1,0 +1,21 @@
+[project]
+name = "ai-engineering-lab"
+version = "0.1.0"
+description = "A small, model-agnostic inference harness"
+readme = "README.md"
+authors = [
+    { email = "mr.malepati@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "litellm>=1.106.2",
+    "pydantic>=2.14.1",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
